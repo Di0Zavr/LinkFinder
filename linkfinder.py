@@ -78,7 +78,7 @@ def parser_error(errmsg):
     sys.exit()
 
 
-def parser_input(input):
+def parser_input(input, burp=False):
     '''
     Parse Input
     '''
@@ -93,9 +93,9 @@ def parser_input(input):
         return [input[12:]]
 
     # Method 3 - Burp file
-    if args.burp:
+    if burp:
         jsfiles = []
-        items = xml.etree.ElementTree.fromstring(open(args.input, "r").read())
+        items = xml.etree.ElementTree.fromstring(open(input, "r").read())
 
         for item in items:
             jsfiles.append({"js":base64.b64decode(item.find('response').text).decode('utf-8',"replace"), "url":item.find('url').text})
@@ -115,8 +115,7 @@ def parser_input(input):
     return [path if os.path.exists(input) else parser_error("file could not \
 be found (maybe you forgot to add http/https).")]
 
-
-def send_request(url):
+def send_request(url, cookies, timeout):
     '''
     Send requests with Requests
     '''
@@ -128,14 +127,14 @@ def send_request(url):
         application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8')
     q.add_header('Accept-Language', 'en-US,en;q=0.8')
     q.add_header('Accept-Encoding', 'gzip')
-    q.add_header('Cookie', args.cookies)
+    q.add_header('Cookie', cookies)
 
     try:
         sslcontext = ssl.create_default_context()
-        response = urlopen(q, timeout=args.timeout, context=sslcontext)
+        response = urlopen(q, timeout=timeout, context=sslcontext)
     except:
         sslcontext = ssl.create_default_context()
-        response = urlopen(q, timeout=args.timeout, context=sslcontext)
+        response = urlopen(q, timeout=timeout, context=sslcontext)
 
     if response.info().get('Content-Encoding') == 'gzip':
         data = GzipFile(fileobj=readBytesCustom(response.read())).read()
@@ -241,7 +240,7 @@ def cli_output(endpoints):
         print(html.escape(endpoint["link"]).encode(
             'ascii', 'ignore').decode('utf8'))
 
-def html_save(html):
+def html_save(html, output):
     '''
     Save as HTML file and open in the browser
     '''
@@ -251,23 +250,23 @@ def html_save(html):
     try:
         s = Template(open('%s/template.html' % sys.path[0], 'r').read())
 
-        text_file = open(args.output, "wb")
+        text_file = open(output, "wb")
         text_file.write(s.substitute(content=html).encode('utf8'))
         text_file.close()
 
-        print("URL to access output: file://%s" % os.path.abspath(args.output))
-        file = "file:///%s" % os.path.abspath(args.output)
+        print("URL to access output: file://%s" % os.path.abspath(output))
+        file = "file:///%s" % os.path.abspath(output)
         if sys.platform == 'linux' or sys.platform == 'linux2':
             subprocess.call(["xdg-open", file])
         else:
             webbrowser.open(file)
     except Exception as e:
         print("Output can't be saved in %s \
-            due to exception: %s" % (args.output, e))
+            due to exception: %s" % (output, e))
     finally:
         os.dup2(hide, 1)
 
-def check_url(url):
+def check_url(url, input):
     nopelist = ["node_modules", "jquery.js"]
     if url[-3:] == ".js":
         words = url.split("/")
@@ -278,9 +277,9 @@ def check_url(url):
             url = "https:" + url
         if url[:4] != "http":
             if url[:1] == "/":
-                url = args.input + url
+                url = input + url
             else:
-                url = args.input + "/" + url
+                url = input + "/" + url
         return url
     else:
         return False
@@ -323,14 +322,14 @@ if __name__ == "__main__":
         mode = 0
 
     # Convert input to URLs or JS files
-    urls = parser_input(args.input)
+    urls = parser_input(args.input, args.burp)
 
     # Convert URLs to JS
     output = ''
     for url in urls:
         if not args.burp:
             try:
-                file = send_request(url)
+                file = send_request(url, cookies=args.cookies, timeout=args.timeout)
             except Exception as e:
                 parser_error("invalid input defined or SSL error: %s" % e)
         else:
@@ -347,7 +346,7 @@ if __name__ == "__main__":
                 print("Running against: " + endpoint)
                 print("")
                 try:
-                    file = send_request(endpoint)
+                    file = send_request(endpoint, cookies=args.cookies, timeout=args.timeout)
                     new_endpoints = parser_file(file, regex_str, mode, args.regex)
                     if args.output == 'cli':
                         cli_output(new_endpoints)
@@ -378,7 +377,7 @@ if __name__ == "__main__":
         if args.output == 'cli':
             cli_output(endpoints)
         else:
-            output += '''
+            html_result += '''
                 <h1>File: <a href="%s" target="_blank" rel="nofollow noopener noreferrer">%s</a></h1>
                 ''' % (html.escape(url), html.escape(url))
 
@@ -397,7 +396,7 @@ if __name__ == "__main__":
                     html.escape(endpoint["link"])
                 )
 
-                output += header + body
+                html_result += header + body
 
     if args.output != 'cli':
-        html_save(output)
+        html_save(html_result, args.output)
