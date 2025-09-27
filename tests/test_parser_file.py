@@ -1,7 +1,7 @@
 import pytest
 from linkfinder import parser_file, regex_str 
 
-TEST_CONTENT = """.one two "http://example1.com"
+TEST_CONTENT = """one two "http://example1.com"
 \"index.php\"
 three
 four "https://example2.com"
@@ -70,7 +70,6 @@ def test_parser_file_mode0_returns_only_links():
 
 def test_parser_file_mode1_returns_with_context():
     actual = parser_file(TEST_CONTENT, regex_str, mode=1, no_dup=0)
-    print(actual)
 
     assert all([item.get("link") for item in actual])
     assert all([item.get("context") for item in actual])

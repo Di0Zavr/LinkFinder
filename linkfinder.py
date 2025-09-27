@@ -160,18 +160,29 @@ def getContext(list_matches, content, include_delimiter=0, context_delimiter_str
         context_start_index = match_start
         context_end_index = match_end
         delimiter_len = len(context_delimiter_str)
-        content_max_index = len(content) - 1
+        context_max_index = len(content) - delimiter_len + 1
+        context_min_index = delimiter_len - 1
 
-        while content[context_start_index] != context_delimiter_str and context_start_index > 0:
+        while content[context_start_index - delimiter_len:context_start_index] != context_delimiter_str and context_start_index > context_min_index:
+            
             context_start_index = context_start_index - 1
 
-        while content[context_end_index] != context_delimiter_str and context_end_index < content_max_index:
+        while content[context_end_index:context_end_index + delimiter_len] != context_delimiter_str and context_end_index < context_max_index:
+            
             context_end_index = context_end_index + 1
+        
+        start_reached_min = context_start_index == context_min_index
+        end_reached_max = context_end_index == context_max_index
 
         if include_delimiter:
-            context = content[context_start_index: context_end_index]
+            context = content[
+                context_start_index - (not start_reached_min) * delimiter_len:
+                context_end_index + (not end_reached_max) * delimiter_len
+                ]
         else:
-            context = content[context_start_index + delimiter_len: context_end_index]
+            context = content[
+                context_start_index:context_end_index
+                ]
 
         item = {
             "link": match_str,
@@ -193,6 +204,7 @@ def parser_file(content, regex_str, mode=1, more_regex=None, no_dup=1):
     Return the list of ["link": link, "context": context]
     The context is optional if mode=1 is provided.
     '''
+    # pls stop
     global context_delimiter_str
 
     if mode == 1:
@@ -371,6 +383,7 @@ if __name__ == "__main__":
                             )
                             html_result += header + body
                 except Exception as e:
+                    # TODO: fuking bullshit
                     print("Invalid input defined or SSL error for: " + endpoint)
                     continue
 
