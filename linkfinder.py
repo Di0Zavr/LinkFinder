@@ -325,7 +325,7 @@ if __name__ == "__main__":
     urls = parser_input(args.input, args.burp)
 
     # Convert URLs to JS
-    output = ''
+    html_result = ''
     for url in urls:
         if not args.burp:
             try:
@@ -351,7 +351,7 @@ if __name__ == "__main__":
                     if args.output == 'cli':
                         cli_output(new_endpoints)
                     else:
-                        output += '''
+                        html_result += '''
                         <h1>File: <a href="%s" target="_blank" rel="nofollow noopener noreferrer">%s</a></h1>
                         ''' % (html.escape(endpoint), html.escape(endpoint))
 
@@ -369,7 +369,7 @@ if __name__ == "__main__":
                                 "<span style='background-color:yellow'>%s</span>" %
                                 html.escape(endpoint2["link"])
                             )
-                            output += header + body
+                            html_result += header + body
                 except Exception as e:
                     print("Invalid input defined or SSL error for: " + endpoint)
                     continue
